@@ -24,6 +24,21 @@
 -->
 <vbox id="zotero-prefpane-account" onload="Zotero_Preferences.Sync.init()">
 	<vbox class="main-section">
+		<groupbox id="custom-sync-server-settings">
+			<label><html:h2 data-l10n-id="preferences-sync-custom-server-heading"/></label>
+			<description data-l10n-id="preferences-sync-custom-server-description"/>
+			<html:div class="form-grid">
+				<label control="sync-server-url" data-l10n-id="preferences-sync-custom-server-url"/>
+				<hbox>
+					<html:input id="sync-server-url" style="flex: 1;"
+						data-l10n-id="preferences-sync-custom-server-url"
+						onkeypress="Zotero_Preferences.Sync.onCustomServerKeyPress(event)"/>
+					<button id="sync-server-save" data-l10n-id="preferences-sync-custom-server-save"
+						oncommand="Zotero_Preferences.Sync.saveCustomServer()"/>
+				</hbox>
+			</html:div>
+		</groupbox>
+		<separator class="thin"/>
 		<vbox id="sync-unauthorized">
 			<description data-l10n-id="preferences-sync-data-syncing-description"/>
 

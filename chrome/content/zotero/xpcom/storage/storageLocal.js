@@ -36,17 +36,23 @@ Zotero.Sync.Storage.Local = {
 	},
 	
 	getEnabledForLibrary: function (libraryID) {
+		// The MVP has no custom-server ZFS support. Group and publication files are
+		// disabled rather than sent to Zotero Storage.
+		var libraryType = Zotero.Libraries.get(libraryID).libraryType;
+		if (Zotero.Sync.Server.isCustom && libraryType != 'user') {
+			return false;
+		}
+
 		// The user must have synced for the first time before we allow storage requests.
 		// This is relevant if an account is set up for syncing but the DB file is cleared and the
 		// user double-clicks on a missing file in download-as-needed mode.
 		if (!Zotero.Users.getCurrentUserID()) {
 			return false;
 		}
-		var libraryType = Zotero.Libraries.get(libraryID).libraryType;
 		switch (libraryType) {
 		case 'user':
 			return Zotero.Prefs.get("sync.storage.enabled");
-		
+
 		// TEMP: Always sync publications files, at least until we have a better interface for
 		// setting library-specific settings
 		case 'publications':
@@ -69,6 +75,9 @@ Zotero.Sync.Storage.Local = {
 	
 	getModeForLibrary: function (libraryID) {
 		var libraryType = Zotero.Libraries.get(libraryID).libraryType;
+		if (Zotero.Sync.Server.isCustom) {
+			return 'webdav';
+		}
 		switch (libraryType) {
 		case 'user':
 			return Zotero.Prefs.get("sync.storage.protocol") == 'webdav' ? 'webdav' : 'zfs';
@@ -91,6 +100,9 @@ Zotero.Sync.Storage.Local = {
 			throw new Error(`Cannot set storage mode for ${libraryType} library`);
 		}
 		
+		if (Zotero.Sync.Server.isCustom && mode == 'zfs') {
+			mode = 'webdav';
+		}
 		switch (mode) {
 		case 'webdav':
 		case 'zfs':

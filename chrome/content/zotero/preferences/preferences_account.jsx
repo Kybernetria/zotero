@@ -42,6 +42,7 @@ Zotero_Preferences.Sync = {
 	_pollInterval: 3000,
 
 	init: async function () {
+		this.initCustomServerSettings();
 		this.storeLastStorageSettings();
 		this.updateStorageSettingsUI();
 		this.updateStorageSettingsGroupsUI();
@@ -100,6 +101,47 @@ Zotero_Preferences.Sync = {
 		document.getElementById('storage-url-prefix').addEventListener('synctopreference', () => {
 			this.unverifyStorageServer();
 		});
+	},
+
+	initCustomServerSettings: function () {
+		document.getElementById('sync-server-url').value = Zotero.Prefs.get('sync.server.url') || '';
+	},
+
+	onCustomServerKeyPress: function (event) {
+		if (event.keyCode == 13) {
+			this.saveCustomServer();
+		}
+	},
+
+	saveCustomServer: async function () {
+		let field = document.getElementById('sync-server-url');
+		let normalized;
+		try {
+			normalized = Zotero.Sync.Server.normalizeURL(field.value);
+		}
+		catch (e) {
+			Zotero.alert(window, Zotero.getString('general.error'), e.message);
+			field.focus();
+			return false;
+		}
+
+		let current = Zotero.Prefs.get('sync.server.url') || '';
+		if (normalized == current) {
+			field.value = normalized;
+			return true;
+		}
+
+		await Zotero.Sync.Server.setURL(normalized);
+		Zotero.Prefs.clear('sync.server.username');
+		field.value = normalized;
+		this.updateStorageSettingsUI();
+		this.displayFields();
+		Zotero.alert(
+			window,
+			Zotero.getString('general.warning'),
+			'Please log in again to the selected sync server.'
+		);
+		return true;
 	},
 	
 	_handlePendingAction: async function () {
@@ -713,8 +755,16 @@ Zotero_Preferences.Sync = {
 		var protocolMenu = document.getElementById('storage-protocol');
 		var settings = document.getElementById('storage-webdav-settings');
 		var sep = document.getElementById('storage-separator');
+		var customServer = Zotero.Sync.Server.isCustom;
+		var zoteroStorageItem = protocolMenu.querySelector('menuitem[value="zotero"]');
+		if (zoteroStorageItem) {
+			zoteroStorageItem.hidden = customServer;
+		}
+		// Custom servers do not support ZFS in the MVP. Keep the stored protocol
+		// unchanged so switching back to Zotero restores the user's choice.
+		let effectiveProtocol = customServer ? 'webdav' : protocol;
 		
-		if (!enabled || protocol == 'zotero') {
+		if (!enabled || effectiveProtocol == 'zotero') {
 			settings.hidden = true;
 			sep.hidden = false;
 		}
@@ -743,6 +793,9 @@ Zotero_Preferences.Sync = {
 		var libraryEnabled = Zotero.Prefs.get('sync.storage.enabled');
 		var storageProtocol = Zotero.Prefs.get('sync.storage.protocol');
 		var groupsEnabled = Zotero.Prefs.get('sync.storage.groups.enabled');
+		if (Zotero.Sync.Server.isCustom) {
+			storageProtocol = 'webdav';
+		}
 		
 		terms.hidden = !((libraryEnabled && storageProtocol == 'zotero') || groupsEnabled);
 	},

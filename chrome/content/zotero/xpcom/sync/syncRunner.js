@@ -47,7 +47,12 @@ Zotero.Sync.Runner_Module = function (options = {}) {
 	
 	Zotero.defineProperty(this, 'baseURL', {
 		get: () => {
-			let url = options.baseURL || Zotero.Prefs.get("api.url") || ZOTERO_CONFIG.API_URL;
+			let url = options.baseURL;
+			if (!url) {
+				url = Zotero.Sync.Server.isCustom
+					? Zotero.Sync.Server.apiURL
+					: Zotero.Prefs.get("api.url") || ZOTERO_CONFIG.API_URL;
+			}
 			if (!url.endsWith('/')) {
 				url += '/';
 			}

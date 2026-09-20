@@ -169,6 +169,7 @@ pref("extensions.zotero.streaming.enabled", true);
 
 // Sync
 pref("extensions.zotero.sync.autoSync", true);
+pref("extensions.zotero.sync.server.url", "");
 pref("extensions.zotero.sync.server.username", "");
 pref("extensions.zotero.sync.server.compressData", true);
 pref("extensions.zotero.sync.storage.enabled", true);

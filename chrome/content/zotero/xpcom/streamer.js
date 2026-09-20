@@ -214,8 +214,8 @@ Zotero.Streamer_Module.prototype = {
 			this._sendSubscriptions([...this._topicListeners.keys()]);
 		}
 	},
-	
-	
+
+
 	_isEnabled: function () {
 		return Zotero.Prefs.get('streaming.enabled')
 			// Only connect if either auto-sync or automatic style/translator updates are enabled
@@ -230,8 +230,16 @@ Zotero.Streamer_Module.prototype = {
 	},
 	
 	
+	_getURL: function () {
+		if (Zotero.Sync.Server.isCustom) {
+			return Zotero.Sync.Server.streamingURL;
+		}
+		return this.url || Zotero.Prefs.get('streaming.url') || ZOTERO_CONFIG.STREAMING_URL;
+	},
+
+
 	_connect: async function () {
-		let url = this.url || Zotero.Prefs.get('streaming.url') || ZOTERO_CONFIG.STREAMING_URL;
+		let url = this._getURL();
 		Zotero.debug(`Connecting to streaming server at ${url}`);
 		
 		this._ready = false;

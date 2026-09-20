@@ -47,6 +47,12 @@ Zotero.Sync.Data.Local = {
 		this._remoteChangesApplied = false;
 	},
 
+	clearCachedCredentials: function () {
+		this._hasCredentials = false;
+		this._mirroredAPIKey = false;
+		this._reencryptedAPIKey = false;
+	},
+
 	markRemoteChangesApplied: function () {
 		this._remoteChangesApplied = true;
 	},
@@ -122,6 +128,11 @@ Zotero.Sync.Data.Local = {
 				Zotero.getString('login-manager-reset')
 			);
 		}
+		// A custom server must not inherit the default Zotero account credentials.
+		// Users must log in to the custom server explicitly.
+		if (Zotero.Sync.Server.isCustom) {
+			return "";
+		}
 		// Fallback to old username/password
 		return this._getAPIKeyFromLogin();
 	},
@@ -151,6 +162,9 @@ Zotero.Sync.Data.Local = {
 	_checkCredentials: async function () {
 		if ((await this._getAPIKeyLoginInfo()) || (await this._getLegacyAPIKeyLoginInfo())) {
 			return true;
+		}
+		if (Zotero.Sync.Server.isCustom) {
+			return false;
 		}
 		// If no API key, check for legacy login
 		var username = Zotero.Prefs.get('sync.server.username');
@@ -242,7 +256,7 @@ Zotero.Sync.Data.Local = {
 		var loginInfo = new nsLoginInfo(
 			this._loginManagerHost,
 			null,
-			this._loginManagerRealm,
+			this._getLoginManagerRealm(),
 			'API Key',
 			storedValue,
 			'',
@@ -592,11 +606,20 @@ Zotero.Sync.Data.Local = {
 	/**
 	 * @return {Promise<nsILoginInfo|false>}
 	 */
+	_getLoginManagerRealm: function (legacy = false) {
+		let realm = legacy ? this._loginManagerRealmLegacy : this._loginManagerRealm;
+		if (Zotero.Sync.Server.isCustom) {
+			realm += ` (${Zotero.Sync.Server.apiURL})`;
+		}
+		return realm;
+	},
+
+
 	_getAPIKeyLoginInfo: async function () {
 		try {
 			var logins = await Services.logins.searchLoginsAsync({
 				origin: this._loginManagerHost,
-				httpRealm: this._loginManagerRealm
+				httpRealm: this._getLoginManagerRealm()
 			});
 		}
 		catch (e) {
@@ -646,7 +669,7 @@ Zotero.Sync.Data.Local = {
 		try {
 			var logins = await Services.logins.searchLoginsAsync({
 				origin: this._loginManagerHost,
-				httpRealm: this._loginManagerRealmLegacy
+				httpRealm: this._getLoginManagerRealm(true)
 			});
 		}
 		catch (e) {
